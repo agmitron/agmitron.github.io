@@ -8,6 +8,8 @@ body {
 .minting {
   padding: 10px;
   background-color: #0b132a;
+  max-width: 50%;
+  margin: 0 auto;
 }
 
 .text {

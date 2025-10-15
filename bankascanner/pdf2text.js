@@ -1,38 +1,31 @@
 import { a as i, _ as p } from "./chunks/pdf-DLwXJBxB.js";
-function m(o) {
-  return new Worker(
-    "/assets/pdf.worker-DZfbeEAW.js",
-    {
-      name: o?.name
-    }
-  );
-}
+const m = "/assets/pdf.worker-DZfbeEAW.js";
 i.workerSrc = m;
-async function f(o) {
+async function u(l) {
   try {
-    const a = await p({ data: o }).promise, c = a.numPages;
-    console.log(`Найдено страниц: ${c}`);
-    let g = "";
-    for (let t = 1; t <= c; t++)
+    const r = await p({ data: l }).promise, a = r.numPages;
+    console.log(`Найдено страниц: ${a}`);
+    let c = "";
+    for (let t = 1; t <= a; t++)
       try {
-        const e = await a.getPage(t), n = (await e.getTextContent()).items.filter((r) => "str" in r).map((r) => r.str).join(" ");
-        n.trim() && (g += n + `
+        const e = await r.getPage(t), o = (await e.getTextContent()).items.filter((n) => "str" in n).map((n) => n.str).join(" ");
+        o.trim() && (c += o + `
 
 `, console.log(
-          `Страница ${t}: извлечено ${n.length} символов`
+          `Страница ${t}: извлечено ${o.length} символов`
         )), e.cleanup();
       } catch (e) {
         console.warn(
           `Предупреждение: не удалось обработать страницу ${t}: ${e.message}`
         );
       }
-    const l = g.trim();
-    return console.log(`Всего извлечено символов: ${l.length}`), l;
+    const g = c.trim();
+    return console.log(`Всего извлечено символов: ${g.length}`), g;
   } catch (s) {
     throw new Error(`Ошибка при обработке PDF: ${s.message}`);
   }
 }
 export {
-  f as pdf2text
+  u as pdf2text
 };
 //# sourceMappingURL=pdf2text.js.map

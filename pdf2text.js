@@ -1,31 +1,39 @@
-import { a as i, _ as p } from "./chunks/pdf-DLwXJBxB.js";
-const m = "/assets/pdf.worker-DZfbeEAW.js";
-i.workerSrc = m;
-async function u(l) {
+import { a as i, b as g, _ as m } from "./chunks/pdf-Dau46TMA.js";
+function _(o) {
+  return new Worker(
+    "/assets/pdf.worker-DZfbeEAW.js",
+    {
+      name: o?.name
+    }
+  );
+}
+g.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${i}/pdf.worker.js`;
+window.pdfjsWorker = _;
+async function k(o) {
   try {
-    const r = await p({ data: l }).promise, a = r.numPages;
-    console.log(`Найдено страниц: ${a}`);
-    let c = "";
-    for (let t = 1; t <= a; t++)
+    const a = await m({ data: o }).promise, c = a.numPages;
+    console.log(`Найдено страниц: ${c}`);
+    let p = "";
+    for (let e = 1; e <= c; e++)
       try {
-        const e = await r.getPage(t), o = (await e.getTextContent()).items.filter((n) => "str" in n).map((n) => n.str).join(" ");
-        o.trim() && (c += o + `
+        const t = await a.getPage(e), r = (await t.getTextContent()).items.filter((n) => "str" in n).map((n) => n.str).join(" ");
+        r.trim() && (p += r + `
 
 `, console.log(
-          `Страница ${t}: извлечено ${o.length} символов`
-        )), e.cleanup();
-      } catch (e) {
+          `Страница ${e}: извлечено ${r.length} символов`
+        )), t.cleanup();
+      } catch (t) {
         console.warn(
-          `Предупреждение: не удалось обработать страницу ${t}: ${e.message}`
+          `Предупреждение: не удалось обработать страницу ${e}: ${t.message}`
         );
       }
-    const g = c.trim();
-    return console.log(`Всего извлечено символов: ${g.length}`), g;
+    const l = p.trim();
+    return console.log(`Всего извлечено символов: ${l.length}`), l;
   } catch (s) {
     throw new Error(`Ошибка при обработке PDF: ${s.message}`);
   }
 }
 export {
-  u as pdf2text
+  k as pdf2text
 };
 //# sourceMappingURL=pdf2text.js.map

@@ -1,94 +1,136 @@
-import { l as x } from "../chunks/index-Dj8nbEF-.js";
-import { _ as S } from "../chunks/pdf-gqnf8hY1.js";
-const Z = (f) => f.replace(
-  /(?<!\d)(\d{1,3}(?: \d{3})+(?:\.\d+)?)(?!\d)/g,
-  (m) => m.replace(/ /g, "")
-), b = async (f) => {
-  try {
-    const m = new Uint8Array(f), y = await S({ data: m }).promise, h = [];
-    for (let t = 1; t <= y.numPages; t++) {
-      const a = (await (await y.getPage(t)).getTextContent()).items.filter((o) => "str" in o).map((o) => ({
-        str: o.str,
-        x: o.transform[4],
-        y: o.transform[5]
-      })), s = /* @__PURE__ */ new Map();
-      for (const o of a) {
-        const c = Math.round(o.y), r = s.get(c) ?? [];
-        r.push(o), s.set(c, r);
-      }
-      const p = [...s.entries()].sort((o, c) => c[0] - o[0]).map(
-        ([o, c]) => c.sort((r, g) => r.x - g.x).map((r) => r.str).join(" ").trim()
-      );
-      h.push(...p);
-    }
-    const A = h.map(Z), _ = /^(\d{2}\.\d{2}\.\d{4})\s+(\w+)\s+(.*)\s+(\d+(?:\.\d+)?)\s+([A-Z]{3})\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)/, $ = /^KZ[0-9A-Z]+\s+([A-Z]{3})$/;
-    let u = null, i = null;
-    const l = [], d = () => {
-      i && (l.push(i), i = null);
-    }, C = /^(Transaction\s+Income in account\s+Expense in|Date\s+Operation|Details\s+Amount|currency\s+currency\s+account currency)/;
-    for (const t of A) {
-      const e = t.trim();
-      if (C.test(e)) continue;
-      const n = $.exec(e);
-      if (n) {
-        d(), u = n[1];
-        continue;
-      }
-      if (!u) continue;
-      const a = _.exec(e);
-      if (a) {
-        d();
-        const [, s, p, o, c, r, g, D] = a;
-        i = {
-          date: s,
-          category: p,
-          comment: o.trim(),
-          amount: c,
-          transCur: r,
-          income: g,
-          expense: D,
-          currency: u
+import { left, right } from "bankascanner/lib";
+import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
+const cleanNumber = (s) => s.replace(/(?<!\d)(\d{1,3}(?: \d{3})+(?:\.\d+)?)(?!\d)/g, (m) => m.replace(/ /g, ""));
+const importer = async (file) => {
+    try {
+        const data = new Uint8Array(file);
+        const doc = await getDocument({ data }).promise;
+        const rawLines = [];
+        for (let p = 1; p <= doc.numPages; p++) {
+            const page = await doc.getPage(p);
+            const tc = await page.getTextContent();
+            const items = tc.items
+                .filter((i) => "str" in i)
+                .map((i) => ({
+                str: i.str,
+                x: i.transform[4],
+                y: i.transform[5],
+            }));
+            const map = new Map();
+            for (const it of items) {
+                const y = Math.round(it.y);
+                const arr = map.get(y) ?? [];
+                arr.push(it);
+                map.set(y, arr);
+            }
+            const pageLines = [...map.entries()]
+                .sort((a, b) => b[0] - a[0])
+                .map(([_, arr]) => arr
+                .sort((a, b) => a.x - b.x)
+                .map((it) => it.str)
+                .join(" ")
+                .trim());
+            rawLines.push(...pageLines);
+        }
+        const lines = rawLines.map(cleanNumber);
+        const dateLine = /^(\d{2}\.\d{2}\.\d{4})\s+(\w+)\s+(.*)\s+(\d+(?:\.\d+)?)\s+([A-Z]{3})\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)/;
+        const accRegex = /^KZ[0-9A-Z]+\s+([A-Z]{3})$/;
+        let currentCurrency = null;
+        let pending = null;
+        const transactions = [];
+        const push = () => {
+            if (pending) {
+                transactions.push(pending);
+                pending = null;
+            }
         };
-        continue;
-      }
-      i && (/^Account transactions/.test(e) ? (d(), u = null) : i.comment += " " + e);
+        const headerRe = /^(Transaction\s+Income in account\s+Expense in|Date\s+Operation|Details\s+Amount|currency\s+currency\s+account currency)/;
+        for (const raw of lines) {
+            const line = raw.trim();
+            if (headerRe.test(line))
+                continue;
+            const accMatch = accRegex.exec(line);
+            if (accMatch) {
+                push();
+                currentCurrency = accMatch[1];
+                continue;
+            }
+            if (!currentCurrency)
+                continue;
+            const m = dateLine.exec(line);
+            if (m) {
+                push();
+                const [, date, category, merchant, amount, transCur, income, expense] = m;
+                pending = {
+                    date,
+                    category,
+                    comment: merchant.trim(),
+                    amount,
+                    transCur,
+                    income,
+                    expense,
+                    currency: currentCurrency,
+                };
+                continue;
+            }
+            if (pending) {
+                if (/^Account transactions/.test(line)) {
+                    push();
+                    currentCurrency = null;
+                }
+                else {
+                    pending.comment += " " + line;
+                }
+            }
+        }
+        push();
+        const deduped = [];
+        for (let i = 0; i < transactions.length; i++) {
+            let t = transactions[i];
+            const next = transactions[i + 1];
+            if (next &&
+                t.date === next.date &&
+                t.category === next.category &&
+                t.comment === next.comment &&
+                t.currency === next.currency &&
+                t.amount === next.amount &&
+                ((parseFloat(t.income) > 0 && parseFloat(next.expense) > 0) ||
+                    (parseFloat(t.expense) > 0 && parseFloat(next.income) > 0))) {
+                const incomeSum = parseFloat(t.income) + parseFloat(next.income);
+                const expenseSum = parseFloat(t.expense) + parseFloat(next.expense);
+                t = {
+                    ...t,
+                    income: expenseSum > 0 ? "0" : incomeSum.toString(),
+                    expense: expenseSum > 0 ? expenseSum.toString() : "0",
+                };
+                i++;
+            }
+            deduped.push(t);
+        }
+        const outcomes = [];
+        for (const tx of deduped) {
+            const [d, mo, y] = tx.date.split(".");
+            const income = parseFloat(tx.income);
+            const expense = parseFloat(tx.expense);
+            const value = parseFloat((income - expense).toFixed(2));
+            const op = {
+                date: new Date(`${y}-${mo}-${d}`),
+                category: tx.category,
+                comment: tx.comment.trim(),
+                value,
+                currency: tx.currency,
+            };
+            outcomes.push(right(op));
+        }
+        return right(outcomes);
     }
-    d();
-    const F = [];
-    for (let t = 0; t < l.length; t++) {
-      let e = l[t];
-      const n = l[t + 1];
-      if (n && e.date === n.date && e.category === n.category && e.comment === n.comment && e.currency === n.currency && e.amount === n.amount && (parseFloat(e.income) > 0 && parseFloat(n.expense) > 0 || parseFloat(e.expense) > 0 && parseFloat(n.income) > 0)) {
-        const a = parseFloat(e.income) + parseFloat(n.income), s = parseFloat(e.expense) + parseFloat(n.expense);
-        e = {
-          ...e,
-          income: s > 0 ? "0" : a.toString(),
-          expense: s > 0 ? s.toString() : "0"
-        }, t++;
-      }
-      F.push(e);
+    catch (e) {
+        return left(`failed to parse pdf: ${e.message}`);
     }
-    const w = [];
-    for (const t of F) {
-      const [e, n, a] = t.date.split("."), s = parseFloat(t.income), p = parseFloat(t.expense), o = parseFloat((s - p).toFixed(2)), c = {
-        date: /* @__PURE__ */ new Date(`${a}-${n}-${e}`),
-        category: t.category,
-        comment: t.comment.trim(),
-        value: o,
-        currency: t.currency
-      };
-      w.push(x.right(c));
-    }
-    return x.right(w);
-  } catch (m) {
-    return x.left(`failed to parse pdf: ${m.message}`);
-  }
-}, k = {
-  name: "Alatau City Bank",
-  version: "latest",
-  run: b
 };
-export {
-  k as default
+const definition = {
+    name: "Alatau City Bank",
+    version: "latest",
+    run: importer,
 };
-//# sourceMappingURL=alatau.js.map
+export default definition;

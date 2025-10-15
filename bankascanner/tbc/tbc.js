@@ -1,5 +1,5 @@
 import { pdf2text as b } from "../pdf2text.js";
-import { l as t } from "../chunks/index-Dj8nbEF-.js";
+import { l as t } from "../bankascanner/chunks/index-Dj8nbEF-.js";
 const d = (e) => e.replace(/\r/g, "").replace(/[\u2000-\u200F]/g, "").replace(/[\u2028\u2029]/g, `
 `).replace(/\u00A0/g, " ").replace(/, ([\u10A0-\u10FF])/g, `,
 $1`).replace(/GL\.23S\s+\(/, `GL.23S

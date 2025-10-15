@@ -1,4 +1,4 @@
-import { l as r } from "../bankascanner/chunks/index-Dj8nbEF-.js";
+import { l as r } from "../chunks/index-Dj8nbEF-.js";
 import { pdf2text as x } from "../pdf2text.js";
 const b = (e) => {
   const [a, t, s] = e.split("."), n = /* @__PURE__ */ new Date(`${s}-${t}-${a}`);

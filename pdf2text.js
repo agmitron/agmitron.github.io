@@ -1,4 +1,4 @@
-import { a as i, _ as p } from "./bankascanner/chunks/pdf-DLwXJBxB.js";
+import { a as i, _ as p } from "./chunks/pdf-DLwXJBxB.js";
 const m = "/assets/pdf.worker-DZfbeEAW.js";
 i.workerSrc = m;
 async function u(l) {

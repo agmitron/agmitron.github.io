@@ -1,5 +1,5 @@
-import { l as x } from "../bankascanner/chunks/index-Dj8nbEF-.js";
-import { _ as S } from "../bankascanner/chunks/pdf-DLwXJBxB.js";
+import { l as x } from "../chunks/index-Dj8nbEF-.js";
+import { _ as S } from "../chunks/pdf-DLwXJBxB.js";
 const Z = (f) => f.replace(
   /(?<!\d)(\d{1,3}(?: \d{3})+(?:\.\d+)?)(?!\d)/g,
   (m) => m.replace(/ /g, "")

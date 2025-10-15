@@ -7,7 +7,7 @@ function _(o) {
     }
   );
 }
-g.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${i}/pdf.worker.js`;
+g.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${i}/pdf.worker.mjs`;
 window.pdfjsWorker = _;
 async function k(o) {
   try {
